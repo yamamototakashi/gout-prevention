@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1b3a6b"/>
+      <stop offset="1" stop-color="#0f1f3d"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#g)"/>
+  <g fill="none" stroke="#8ecae6" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M150 330 q40 -90 106 -90 q66 0 106 90"/>
+    <circle cx="180" cy="350" r="14" fill="#8ecae6"/>
+    <circle cx="332" cy="350" r="14" fill="#8ecae6"/>
+  </g>
+  <g fill="#ffb703">
+    <circle cx="378" cy="150" r="34"/>
+    <circle cx="378" cy="150" r="18" fill="#ffd166"/>
+  </g>
+  <text x="256" y="440" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="72" font-weight="700" fill="#e9edf2">痛風</text>
+</svg>

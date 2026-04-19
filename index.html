@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=yes" />
+  <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="痛風メモ" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <title>痛風メモ</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="app" aria-live="polite">
+
+<!-- ====== HEADER ====== -->
+<header class="app-header">
+  <button id="btnMenu" class="icon-btn" aria-label="メニュー">☰</button>
+  <h1 id="pageTitle">今日</h1>
+  <button id="btnTheme" class="icon-btn" aria-label="表示切替">◐</button>
+</header>
+
+<!-- ====== HOME (今日) ====== -->
+<section class="page" id="page-home" data-page="home">
+  <div class="date-bar">
+    <button id="dayPrev" class="icon-btn" aria-label="前日">‹</button>
+    <button id="dayToday" class="date-label" aria-label="日付を選択">
+      <span id="homeDate">—</span>
+    </button>
+    <button id="dayNext" class="icon-btn" aria-label="翌日">›</button>
+  </div>
+
+  <!-- Super-fast 1-tap entries -->
+  <div class="quick-grid" role="group" aria-label="ワンタップ記録">
+    <button class="quick no-drink" data-quick="nodrink">
+      <span class="q-emoji" aria-hidden="true">🚫🍺</span>
+      <span class="q-label">飲まなかった</span>
+    </button>
+    <button class="quick water" data-quick="water">
+      <span class="q-emoji" aria-hidden="true">💧</span>
+      <span class="q-label"><span id="waterTodayMl">0</span> ml<br><small>+250ml</small></span>
+    </button>
+    <button class="quick pain" data-quick="pain">
+      <span class="q-emoji" aria-hidden="true">⚡</span>
+      <span class="q-label">痛み記録</span>
+    </button>
+    <button class="quick meds" data-quick="meds">
+      <span class="q-emoji" aria-hidden="true">💊</span>
+      <span class="q-label">薬<br><small id="medsTodayStatus">—</small></span>
+    </button>
+  </div>
+
+  <!-- Today summary -->
+  <div class="card">
+    <div class="card-head">
+      <h2>今日の記録</h2>
+      <button class="link" id="btnTodayDetail">詳細 ›</button>
+    </div>
+    <ul class="today-list" id="todayList"></ul>
+  </div>
+
+  <!-- Secondary quick actions -->
+  <div class="card">
+    <div class="card-head"><h2>追加で記録</h2></div>
+    <div class="chip-grid">
+      <button class="chip" data-add="alcohol">🍺 飲酒量</button>
+      <button class="chip" data-add="risk">🥩 高リスク食品</button>
+      <button class="chip" data-add="state">😴 体調/ストレス</button>
+      <button class="chip" data-add="note">📝 メモ</button>
+    </div>
+  </div>
+
+  <!-- Ongoing attack banner -->
+  <div class="card attack-card hidden" id="attackBanner">
+    <div class="card-head">
+      <h2>⚡ 発作を記録中</h2>
+      <button class="link" id="btnEndAttack">終了</button>
+    </div>
+    <p id="attackBannerText" class="muted"></p>
+  </div>
+
+  <div class="disclaimer" role="note">
+    このアプリは服薬判断や診断を行いません。用量・使用可否は医師の指示に従ってください。
+  </div>
+</section>
+
+<!-- ====== PAIN ENTRY ====== -->
+<section class="page hidden" id="page-pain" data-page="pain">
+  <div class="form">
+    <label class="field">
+      <span>痛みの強さ</span>
+      <div class="nrs" role="radiogroup" aria-label="0から10で痛みの強さ">
+        <!-- generated buttons -->
+      </div>
+      <div class="nrs-help"><small>0 = 痛みなし / 10 = これまでで最悪</small></div>
+    </label>
+
+    <div class="field">
+      <span>部位（タップで選択・再タップで解除）</span>
+      <div class="body-select">
+        <div class="view-tabs">
+          <button class="tab active" data-view="foot">足</button>
+          <button class="tab" data-view="full">全身</button>
+        </div>
+        <div class="body-canvas" id="bodyCanvas"></div>
+        <div class="side-toggle">
+          <button class="side active" data-side="L">左</button>
+          <button class="side" data-side="R">右</button>
+          <button class="side" data-side="B">両側</button>
+        </div>
+        <div class="selected-parts" id="selectedParts"></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <span>症状</span>
+      <div class="chip-grid">
+        <button class="chip toggle" data-sym="swelling">🔴 腫れ</button>
+        <button class="chip toggle" data-sym="heat">🌡️ 熱感</button>
+        <button class="chip toggle" data-sym="walk">🚶 歩行支障</button>
+        <button class="chip toggle" data-sym="redness">🫧 発赤</button>
+      </div>
+    </div>
+
+    <label class="field">
+      <span>メモ（任意）</span>
+      <textarea id="painNote" rows="2" placeholder="いつ頃からか、引き金など"></textarea>
+    </label>
+
+    <label class="field">
+      <input type="checkbox" id="painIsAttack" />
+      <span>新しい発作として登録する（発作開始）</span>
+    </label>
+
+    <div class="btn-row">
+      <button class="btn primary" id="savePain">保存</button>
+      <button class="btn ghost" data-nav="home">キャンセル</button>
+    </div>
+  </div>
+</section>
+
+<!-- ====== MEDS ENTRY ====== -->
+<section class="page hidden" id="page-meds" data-page="meds">
+  <div class="card">
+    <div class="card-head">
+      <h2>今日の服薬</h2>
+      <button class="link" id="btnManageMeds">管理</button>
+    </div>
+    <ul id="medsTodayList" class="meds-list"></ul>
+    <div class="hint muted" id="medsEmptyHint" style="display:none">
+      右上の「管理」から、服用している薬を登録してください（例：コルヒチン、アロプリノール）。
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn ghost" data-nav="home">戻る</button>
+  </div>
+</section>
+
+<!-- ====== MEDS MANAGEMENT ====== -->
+<section class="page hidden" id="page-meds-manage" data-page="meds-manage">
+  <div class="card">
+    <div class="card-head"><h2>薬の登録</h2></div>
+    <ul id="medsRegList" class="meds-list"></ul>
+    <div class="btn-row">
+      <button class="btn primary" id="btnAddMed">＋ 追加</button>
+      <button class="btn ghost" data-nav="meds">戻る</button>
+    </div>
+  </div>
+</section>
+
+<!-- ====== MED EDITOR ====== -->
+<section class="page hidden" id="page-med-edit" data-page="med-edit">
+  <div class="form">
+    <label class="field">
+      <span>薬の名前</span>
+      <div class="chip-grid">
+        <button class="chip suggest" data-suggest="コルヒチン">コルヒチン</button>
+        <button class="chip suggest" data-suggest="アロプリノール">アロプリノール</button>
+        <button class="chip suggest" data-suggest="フェブキソスタット">フェブキソスタット</button>
+        <button class="chip suggest" data-suggest="ロキソプロフェン">ロキソプロフェン</button>
+        <button class="chip suggest" data-suggest="ナプロキセン">ナプロキセン</button>
+        <button class="chip suggest" data-suggest="プレドニゾロン">プレドニゾロン</button>
+      </div>
+      <input id="medName" type="text" placeholder="自由入力も可" />
+    </label>
+    <label class="field">
+      <span>タイプ</span>
+      <select id="medType">
+        <option value="daily">毎日服用</option>
+        <option value="prn">頓服（必要時）</option>
+      </select>
+    </label>
+    <label class="field" id="fldMedTime">
+      <span>服用時刻（カンマ区切り可: 08:00, 20:00）</span>
+      <input id="medTime" type="text" placeholder="08:00" />
+    </label>
+    <label class="field">
+      <span>メモ（用量や注意など）</span>
+      <textarea id="medNote" rows="2" placeholder="例：発作時のみ 1回1錠 最大3回/日（医師指示）"></textarea>
+    </label>
+    <label class="field">
+      <input type="checkbox" id="medReminder" />
+      <span>時刻にリマインド通知する</span>
+    </label>
+    <div class="btn-row">
+      <button class="btn primary" id="saveMed">保存</button>
+      <button class="btn danger" id="deleteMed">削除</button>
+      <button class="btn ghost" data-nav="meds-manage">戻る</button>
+    </div>
+    <div class="disclaimer">用量・服用可否はここで決めないでください。必ず医師・薬剤師の指示に従ってください。</div>
+  </div>
+</section>
+
+<!-- ====== ALCOHOL ====== -->
+<section class="page hidden" id="page-alcohol" data-page="alcohol">
+  <div class="form">
+    <div class="field">
+      <span>種類</span>
+      <div class="chip-grid" id="alcoholKinds">
+        <button class="chip toggle" data-kind="beer">🍺 ビール</button>
+        <button class="chip toggle" data-kind="sake">🍶 日本酒</button>
+        <button class="chip toggle" data-kind="wine">🍷 ワイン</button>
+        <button class="chip toggle" data-kind="shochu">🥃 焼酎/ウイスキー</button>
+        <button class="chip toggle" data-kind="other">🧉 その他</button>
+      </div>
+    </div>
+    <label class="field">
+      <span>量（目安）</span>
+      <div class="stepper">
+        <button class="step" data-delta="-1">－</button>
+        <span id="alcUnits">1</span>
+        <button class="step" data-delta="+1">＋</button>
+        <small class="muted">杯 / 単位</small>
+      </div>
+    </label>
+    <label class="field">
+      <span>メモ</span>
+      <textarea id="alcNote" rows="2" placeholder="会食、寝る直前、など"></textarea>
+    </label>
+    <div class="btn-row">
+      <button class="btn primary" id="saveAlcohol">保存</button>
+      <button class="btn ghost" data-nav="home">キャンセル</button>
+    </div>
+  </div>
+</section>
+
+<!-- ====== RISK FOOD ====== -->
+<section class="page hidden" id="page-risk" data-page="risk">
+  <div class="form">
+    <div class="field">
+      <span>今日食べたもの（ざっくり選択）</span>
+      <div class="chip-grid">
+        <button class="chip toggle" data-risk="organ">内臓系（レバー・モツ）</button>
+        <button class="chip toggle" data-risk="roe">魚卵・干物</button>
+        <button class="chip toggle" data-risk="redmeat">赤身肉（大量）</button>
+        <button class="chip toggle" data-risk="seafood">エビ・イカ・カツオ</button>
+        <button class="chip toggle" data-risk="sweet_drink">甘い飲料・果糖</button>
+        <button class="chip toggle" data-risk="big_meal">食べすぎ</button>
+      </div>
+    </div>
+    <label class="field">
+      <span>メモ</span>
+      <textarea id="riskNote" rows="2" placeholder="特記事項"></textarea>
+    </label>
+    <div class="btn-row">
+      <button class="btn primary" id="saveRisk">保存</button>
+      <button class="btn ghost" data-nav="home">キャンセル</button>
+    </div>
+  </div>
+</section>
+
+<!-- ====== STATE (体調) ====== -->
+<section class="page hidden" id="page-state" data-page="state">
+  <div class="form">
+    <div class="field">
+      <span>当てはまるもの</span>
+      <div class="chip-grid">
+        <button class="chip toggle" data-state="sleep_short">😴 睡眠不足</button>
+        <button class="chip toggle" data-state="stress">😣 ストレス</button>
+        <button class="chip toggle" data-state="dehydration">🥵 脱水気味</button>
+        <button class="chip toggle" data-state="overwork">🏃 運動しすぎ</button>
+        <button class="chip toggle" data-state="cold">❄️ 冷え</button>
+      </div>
+    </div>
+    <label class="field">
+      <span>体重（任意, kg）</span>
+      <input id="weightInput" type="number" inputmode="decimal" step="0.1" min="0" max="300" />
+    </label>
+    <label class="field">
+      <span>尿酸値（任意, mg/dL）</span>
+      <input id="uaInput" type="number" inputmode="decimal" step="0.1" min="0" max="20" />
+      <small class="muted">検査値を入力するとレポートに反映されます。</small>
+    </label>
+    <div class="btn-row">
+      <button class="btn primary" id="saveState">保存</button>
+      <button class="btn ghost" data-nav="home">キャンセル</button>
+    </div>
+  </div>
+</section>
+
+<!-- ====== NOTE ====== -->
+<section class="page hidden" id="page-note" data-page="note">
+  <div class="form">
+    <label class="field">
+      <span>メモ（フリーテキスト）</span>
+      <textarea id="freeNote" rows="5" placeholder="気になったこと、受診時に伝えたいこと"></textarea>
+    </label>
+    <div class="btn-row">
+      <button class="btn primary" id="saveNote">保存</button>
+      <button class="btn ghost" data-nav="home">キャンセル</button>
+    </div>
+  </div>
+</section>
+
+<!-- ====== TIMELINE ====== -->
+<section class="page hidden" id="page-timeline" data-page="timeline">
+  <div class="card">
+    <div class="card-head">
+      <h2>タイムライン</h2>
+      <select id="tlRange" class="mini-select">
+        <option value="14">直近14日</option>
+        <option value="30" selected>直近30日</option>
+        <option value="90">直近90日</option>
+      </select>
+    </div>
+    <div class="timeline" id="timeline"></div>
+    <div class="legend">
+      <span class="dot dot-pain"></span>痛み
+      <span class="dot dot-alc"></span>飲酒
+      <span class="dot dot-water"></span>水分
+      <span class="dot dot-risk"></span>高リスク
+      <span class="dot dot-med"></span>服薬
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>傾向（参考）</h2></div>
+    <ul id="correlationList" class="corr-list"></ul>
+    <p class="muted small">これは統計的推論ではなく、あなたの記録内の単純な傾向表示です。断定的な判断はできません。</p>
+  </div>
+
+  <div class="card" id="attackWindowCard">
+    <div class="card-head"><h2>発作前の行動（直近の発作）</h2></div>
+    <div id="attackWindow" class="attack-window"></div>
+  </div>
+</section>
+
+<!-- ====== ATTACK HISTORY ====== -->
+<section class="page hidden" id="page-attacks" data-page="attacks">
+  <div class="card">
+    <div class="card-head">
+      <h2>発作の履歴</h2>
+    </div>
+    <ul id="attackList" class="attack-list"></ul>
+  </div>
+</section>
+
+<!-- ====== REPORT (受診用) ====== -->
+<section class="page hidden" id="page-report" data-page="report">
+  <div class="card no-print-card report-controls">
+    <div class="card-head">
+      <h2>受診レポート</h2>
+    </div>
+    <div class="chip-grid">
+      <button class="chip toggle active" data-range="30">直近30日</button>
+      <button class="chip toggle" data-range="90">直近90日</button>
+      <button class="chip toggle" data-range="attacks">発作サマリー</button>
+    </div>
+    <label class="field">
+      <span>受診時メモ</span>
+      <textarea id="visitNote" rows="3" placeholder="医師に伝えたいこと"></textarea>
+    </label>
+    <div class="btn-row">
+      <button class="btn primary" id="btnPrint">🖨 印刷/PDF</button>
+      <button class="btn" id="btnCsv">CSVエクスポート</button>
+      <button class="btn ghost" id="btnExportJson">JSONバックアップ</button>
+      <label class="btn ghost file-btn">
+        JSON復元
+        <input id="importJson" type="file" accept="application/json" hidden />
+      </label>
+    </div>
+  </div>
+
+  <article id="reportView" class="report-view"></article>
+</section>
+
+<!-- ====== SETTINGS ====== -->
+<section class="page hidden" id="page-settings" data-page="settings">
+  <div class="card">
+    <div class="card-head"><h2>設定</h2></div>
+    <label class="row">
+      <span>文字の大きさ</span>
+      <select id="setFont">
+        <option value="normal">標準</option>
+        <option value="large">大きめ</option>
+        <option value="xl">特大</option>
+      </select>
+    </label>
+    <label class="row">
+      <span>表示モード</span>
+      <select id="setTheme">
+        <option value="auto">自動</option>
+        <option value="light">ライト</option>
+        <option value="dark">ダーク</option>
+      </select>
+    </label>
+    <label class="row">
+      <span>1日の水分目標 (ml)</span>
+      <input id="setWaterGoal" type="number" min="500" max="5000" step="100" value="2000" />
+    </label>
+    <label class="row">
+      <span>水分1回の加算量 (ml)</span>
+      <input id="setWaterStep" type="number" min="50" max="1000" step="50" value="250" />
+    </label>
+    <label class="row">
+      <span>服薬リマインド通知</span>
+      <button id="btnEnableNotif" class="btn small">許可する</button>
+    </label>
+    <label class="row">
+      <span>データを全消去</span>
+      <button id="btnWipe" class="btn danger small">消去</button>
+    </label>
+  </div>
+  <div class="card">
+    <div class="card-head"><h2>このアプリについて</h2></div>
+    <p class="muted small">
+      痛風メモ（PWA）。データは端末内にのみ保存されます。ログイン不要。
+      このアプリは医療行為の代行を行いません。診断・治療は医療機関にご相談ください。
+    </p>
+  </div>
+</section>
+
+<!-- ====== BOTTOM NAV ====== -->
+<nav class="tabbar" aria-label="メイン">
+  <button class="tab-btn active" data-nav="home"><span>🏠</span><small>今日</small></button>
+  <button class="tab-btn" data-nav="timeline"><span>📈</span><small>傾向</small></button>
+  <button class="tab-btn" data-nav="attacks"><span>⚡</span><small>発作</small></button>
+  <button class="tab-btn" data-nav="report"><span>📋</span><small>受診</small></button>
+  <button class="tab-btn" data-nav="settings"><span>⚙️</span><small>設定</small></button>
+</nav>
+
+<!-- ====== TOAST ====== -->
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<!-- Install prompt -->
+<div id="installBanner" class="install-banner hidden">
+  <span>ホーム画面に追加するとさらに快適に使えます</span>
+  <button id="btnInstall" class="btn primary small">追加</button>
+  <button id="btnInstallClose" class="icon-btn" aria-label="閉じる">×</button>
+</div>
+
+</div>
+<script src="app.js" defer></script>
+</body>
+</html>
