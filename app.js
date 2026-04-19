@@ -82,16 +82,25 @@ function show(page) {
   const titles = { home: '今日', timeline: '傾向', attacks: '発作の履歴', report: '受診レポート', settings: '設定', pain: '痛みの記録', meds: '服薬', 'meds-manage': '薬の管理', 'med-edit': '薬の編集', alcohol: '飲酒の記録', risk: '高リスク食品', state: '体調', note: 'メモ' };
   $('#pageTitle').textContent = titles[page] || '痛風メモ';
   window.scrollTo(0, 0);
-  if (page === 'home') renderHome();
-  if (page === 'timeline') renderTimeline();
-  if (page === 'attacks') renderAttacks();
-  if (page === 'report') renderReport();
-  if (page === 'meds') renderMedsToday();
-  if (page === 'meds-manage') renderMedsManage();
-  if (page === 'pain') renderPainPage();
-  if (page === 'alcohol') renderAlcoholPage();
-  if (page === 'risk') renderRiskPage();
-  if (page === 'state') renderStatePage();
+  const rendererMap = {
+    home: 'renderHome',
+    timeline: 'renderTimeline',
+    attacks: 'renderAttacks',
+    report: 'renderReport',
+    meds: 'renderMedsToday',
+    'meds-manage': 'renderMedsManage',
+    pain: 'renderPainPage',
+    alcohol: 'renderAlcoholPage',
+    risk: 'renderRiskPage',
+    state: 'renderStatePage',
+  };
+  const fnName = rendererMap[page];
+  if (fnName) {
+    const fn = window.__app && window.__app[fnName];
+    if (typeof fn === 'function') {
+      try { fn(); } catch (err) { console.error(err); toast('表示に失敗しました'); }
+    }
+  }
 }
 
 document.addEventListener('click', (e) => {

@@ -1,5 +1,5 @@
 /* 痛風メモ Service Worker - local-first, offline-first */
-const CACHE = 'tsufu-memo-v1';
+const CACHE = 'tsufu-memo-v2';
 const ASSETS = [
   './',
   './index.html',
