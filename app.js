@@ -291,7 +291,7 @@ function buildFullBodySVG() {
 function renderPainPage() {
   // NRS buttons
   const nrs = document.querySelector('#page-pain .nrs');
-  if (!nrs.hasChildNodes()) {
+  if (!nrs.querySelector('button[data-v]')) {
     nrs.innerHTML = [...Array(11)].map((_, i) => `<button type="button" data-v="${i}">${i}</button>`).join('');
     nrs.addEventListener('click', (e) => {
       const b = e.target.closest('button[data-v]'); if (!b) return;
